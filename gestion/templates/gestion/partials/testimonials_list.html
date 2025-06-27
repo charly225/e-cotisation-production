@@ -1,0 +1,36 @@
+{% for temoignage in temoignages_page %}
+<div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow w-full">
+    <div class="flex items-start gap-4">
+        <div class="flex-1">
+            <!-- Étoiles -->
+            <div class="flex items-center mb-2">
+                {% for i in "12345" %}
+                    {% if forloop.counter <= temoignage.nombre_etoiles %}
+                        <i class="fas fa-star text-yellow-400 text-sm"></i>
+                    {% else %}
+                        <i class="fas fa-star text-gray-300 text-sm"></i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Message -->
+            <p class="text-gray-700 mb-3 italic">"{{ temoignage.message }}"</p>
+
+            <!-- Auteur -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center text-sm gap-2">
+                <div>
+                    <span class="font-semibold text-deep-blue">{{ temoignage.nom }}</span>
+                    <span class="text-gray-500 ml-2">{{ temoignage.lien_avec_enfant }}</span>
+                </div>
+                <span class="text-gray-400">{{ temoignage.date_creation|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="text-center py-8 text-gray-500">
+    <i class="fas fa-comments text-4xl mb-3 opacity-50"></i>
+    <p>Aucun témoignage pour le moment.</p>
+    <p class="text-sm">Soyez le premier à partager !</p>
+</div>
+{% endfor %}

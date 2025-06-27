@@ -1,0 +1,29 @@
+{% if temoignages_page.has_other_pages %}
+    <!-- Bouton Précédent -->
+    {% if temoignages_page.has_previous %}
+    <button data-page="{{ temoignages_page.previous_page_number }}"
+       class="px-3 py-2 text-sm sm:text-base rounded-lg bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    {% endif %}
+
+    <!-- Numéros de page -->
+    {% for num in temoignages_page.paginator.page_range %}
+        {% if num == temoignages_page.number %}
+            <span class="px-4 py-2 rounded-lg bg-blue-600 text-white">{{ num }}</span>
+        {% else %}
+            <button data-page="{{ num }}"
+               class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                {{ num }}
+            </button>
+        {% endif %}
+    {% endfor %}
+
+    <!-- Bouton Suivant -->
+    {% if temoignages_page.has_next %}
+    <button data-page="{{ temoignages_page.next_page_number }}"
+       class="px-3 py-2 text-sm sm:text-base rounded-lg bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    {% endif %}
+{% endif %}

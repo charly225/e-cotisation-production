@@ -1,0 +1,5 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home3/sc5zds/charlemagne.theses.ci"
+PassengerBaseURI "/"
+PassengerPython "/home3/sc5zds/virtualenv/charlemagne.theses.ci/3.12/bin/python"
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END

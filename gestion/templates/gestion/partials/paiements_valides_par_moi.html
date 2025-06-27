@@ -1,0 +1,17 @@
+{% load humanize %}
+<div class="space-y-4 p-4 sm:p-6">
+  <h2 class="text-xl font-semibold text-deep-blue">✅ Paiements validés par vous</h2>
+  {% if paiements %}
+    {% for paiement in paiements %}
+      <div class="bg-white border rounded p-4 shadow-sm paiement-item" data-nom="{{ paiement.membre.nom|lower }} {{ paiement.membre.prenom|lower }}">
+        <p><strong>{{ paiement.membre.prenom }} {{ paiement.membre.nom }}</strong></p>
+        <p class="text-sm text-muted-foreground">
+          Montant : {{ paiement.montant|intcomma }} FCFA — {{ paiement.date_paiement|date:"d/m/Y" }}
+        </p>
+        <p class="text-sm">Moyen : {{ paiement.moyen_paiement.libelle }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted-foreground">Aucun paiement validé par vous pour l’instant.</p>
+  {% endif %}
+</div>

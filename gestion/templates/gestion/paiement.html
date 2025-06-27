@@ -1,0 +1,209 @@
+{% load static %}
+{% load widget_tweaks %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paiement | e-Cotisation</title>
+  <link rel="stylesheet" href="{% static 'gestion/assets/css/styles.css' %}"/>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23ff0000' d='M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'/%3E%3C/svg%3E" type="image/svg+xml">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .btn-gradient {
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    }
+    .btn-gradient:hover {
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-soft-white">
+  <header class="bg-white border-b border-border">
+    <div class="container mx-auto px-4 py-6 text-center">
+      <h1 class="text-3xl font-bold text-deep-blue mb-2">Faire une contribution</h1>
+      <p class="text-muted-foreground">Votre solidarité fait la différence dans la vie de nos enfants</p>
+    </div>
+  </header>
+
+  <div class="container mx-auto px-4 sm:px-6 md:px-8 py-8 max-w-4xl">
+    <div id="message-objectif" class="hidden p-4 mb-4 border-l-4 border-yellow-500 bg-yellow-50 text-yellow-800 rounded">
+      🎉 L'objectif de la campagne a déjà été atteint, mais chaque contribution supplémentaire permettra d’aider encore plus d’enfants. Merci pour votre générosité 🙏
+    </div>
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+          <div class="rounded-lg border bg-card shadow-sm">
+            <div class="p-6">
+              <h3 class="text-2xl font-semibold text-deep-blue flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14v-2a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h13a1 1 0 0 1 1 1v4H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1h13a2 2 0 0 1 2 2v9z"/></svg>
+                Détails de votre contribution
+              </h3>
+
+              <div class="mt-6 space-y-4">
+
+                <!-- Cotisation -->
+                <div>
+                  <label class="block font-medium text-base">Campagne</label>
+                  {{ form.cotisation|add_class:"mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" }}
+                  {% for error in form.cotisation.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                  {% endfor %}
+                </div>
+
+                <!-- Montant -->
+                <div>
+                  <label class="block font-medium text-base">Montant</label>
+                  {{ form.montant|add_class:"mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" }}
+                    <p id="montant-help" class="text-sm text-gray-500 mt-1 hidden">
+                        Le montant de cette cotisation est fixe.
+                    </p>
+                  {% for error in form.montant.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                  {% endfor %}
+                </div>
+
+                <!-- Moyen de paiement -->
+                <div>
+                  <label class="block font-medium text-base">Moyen de paiement</label>
+                  {{ form.moyen_paiement|add_class:"mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" }}
+                  {% for error in form.moyen_paiement.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                  {% endfor %}
+                </div>
+
+                <!-- Bouton -->
+                <div class="pt-4">
+                  <button type="submit" class="w-full btn-gradient text-white py-3 px-4 rounded-lg font-medium text-lg shadow hover:shadow-md">
+                    Procéder au paiement
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Récapitulatif -->
+        <div class="space-y-6 w-full">
+          <div class="rounded-lg border bg-card shadow-sm p-6">
+            <h3 class="text-2xl font-semibold text-deep-blue mb-4">Récapitulatif</h3>
+            <p class="text-muted-foreground">Montant: <strong id="recap-montant" class="text-deep-blue">0 FCFA</strong></p>
+            <p class="text-muted-foreground">Campagne: <strong id="recap-campagne">Non sélectionnée</strong></p>
+            <p class="text-muted-foreground">Moyen: <strong id="recap-moyen">---</strong></p>
+          </div>
+      </div>
+      </form>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const selectCotisation = document.querySelector('select[name="cotisation"]');
+      const montantInput = document.querySelector('input[name="montant"]');
+      const selectMoyen = document.querySelector('select[name="moyen_paiement"]');
+      const aideMontant = document.getElementById('montant-help');
+      const messageBox = document.getElementById('message-objectif');
+
+      const recapMontant = document.getElementById('recap-montant');
+      const recapCampagne = document.getElementById('recap-campagne');
+      const recapMoyen = document.getElementById('recap-moyen');
+
+      if (messageBox) {
+        messageBox.classList.add('hidden');
+      }
+
+      if (selectCotisation && montantInput) {
+        selectCotisation.addEventListener('change', async function () {
+          const cotisationId = this.value;
+
+          if (!cotisationId) return;
+
+          try {
+            const resStatut = await fetch(`/ajax/statut-cotisation/${cotisationId}/`);
+            if (resStatut.ok) {
+              const stats = await resStatut.json();
+              if (messageBox) {
+                if (stats.objectif_depasse) {
+                  messageBox.classList.remove('hidden');
+                } else {
+                  messageBox.classList.add('hidden');
+                }
+              }
+            } else {
+              console.warn("Erreur lors de la récupération du statut de l’objectif.");
+              messageBox.classList.add('hidden');
+            }
+          } catch (err) {
+            console.error("Erreur réseau pour statut cotisation :", err);
+            messageBox.classList.add('hidden');
+          }
+
+          // Appel AJAX vers une route Django pour récupérer le paramétrage
+          const response = await fetch(`/cotisation/parametrage/${cotisationId}/`);
+
+          if (!response.ok) return;
+
+          const data = await response.json();
+
+          if (data.est_cotisation_libre) {
+            montantInput.removeAttribute('readonly');
+            montantInput.value = '';
+            montantInput.setAttribute('min', data.montant_minimum || 0);
+            montantInput.setAttribute('step', '100');
+            montantInput.className = 'form-input w-full px-4 py-2 rounded-md border border-gray-300';
+            if (aideMontant) aideMontant.classList.add('hidden');
+          } else {
+            montantInput.setAttribute('readonly', true);
+            montantInput.value = data.montant_fixe;
+            montantInput.className = 'form-input w-full px-4 py-2 rounded-md bg-gray-100 text-gray-500 cursor-not-allowed';
+            if (aideMontant) aideMontant.classList.remove('hidden');
+            updateRecapMontant();
+          }
+
+        });
+      }
+          function updateRecapMontant() {
+          if (recapMontant && montantInput.value) {
+            recapMontant.textContent = `${parseInt(montantInput.value)} FCFA`;
+          }
+        }
+
+        function updateRecapCampagne() {
+        if (recapCampagne && selectCotisation) {
+          const selectedOption = selectCotisation.options[selectCotisation.selectedIndex];
+          recapCampagne.textContent = selectedOption ? selectedOption.textContent : 'Non sélectionnée';
+        }
+      }
+
+        function updateRecapMoyen() {
+        if (recapMoyen && selectMoyen) {
+          const selectedOption = selectMoyen.options[selectMoyen.selectedIndex];
+          recapMoyen.textContent = selectedOption ? selectedOption.textContent : '---';
+        }
+      }
+
+        if (montantInput) {
+        montantInput.addEventListener('input', updateRecapMontant);
+      }
+
+      if (selectCotisation) {
+        selectCotisation.addEventListener('change', function () {
+          updateRecapCampagne();
+          updateRecapMontant(); // au cas où montant change automatiquement
+        });
+      }
+
+      if (selectMoyen) {
+        selectMoyen.addEventListener('change', updateRecapMoyen);
+      }
+
+      // Initialisation
+      updateRecapCampagne();
+      updateRecapMoyen();
+      updateRecapMontant();
+
+    });
+  </script>
+</body>
+</html>
+

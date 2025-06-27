@@ -1,0 +1,660 @@
+{% load static %}
+{% load permissions_tags %}
+{% load humanize %}
+{% load widget_tweaks %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{% static 'gestion/assets/css/styles.css' %}"/>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23ff0000' d='M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'/%3E%3C/svg%3E" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+      <script src="https://cdn.tailwindcss.com"></script>
+    <title>Accueil | e-cotisation</title>
+     <style>
+        /* Style pour le select du formulaire Django */
+        select[name*="lien_avec_enfant"],
+        select[name*="nombre_etoiles"] {
+            width: 100%;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: white;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        select[name*="lien_avec_enfant"]:focus,
+        select[name*="nombre_etoiles"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        /* Style pour le bouton Back to Top */
+        #back-to-top {
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+        }
+
+        #back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        #back-to-top:hover {
+            transform: translateY(-3px);
+        }
+        html{
+          scroll-behavior: smooth;
+        }
+        .custom-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        }
+        @media (max-width: 400px) {
+          #back-to-top {
+            right: 1rem;
+            bottom: 1rem;
+          }
+        }
+    </style>
+  </head>
+  <header>
+      <div role="region" aria-label="Notifications (F8)" tabindex="-1" style="pointer-events: none">
+        <ol tabindex="-1" class="fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"></ol>
+      </div>
+      <nav class="bg-white/90 backdrop-blur-sm border-b border-border sticky top-0 z-50">
+          <div class="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0">
+              <a href="{% url 'accueil' %}" class="flex-shrink-0">
+                  {% if logo_actif %}
+                    <img src="{{ logo_actif.image.url }}" alt="{{ logo_actif.nom }}" class="h-8 sm:h-10 w-auto transition-all duration-300 hover:scale-105">
+                  {% else %}
+                    <img src="{% static 'gestion/assets/logo.svg' %}" alt="logo par défaut" class="h-8 sm:h-10 w-auto">
+                  {% endif %}
+              </a>
+            <div class="w-full sm:w-auto flex items-center justify-end space-x-2 sm:space-x-4">
+              <a href="#notre-mission" class="text-sm sm:text-base px-3 py-2 rounded-md hover:bg-primary/10 transition-colors whitespace-nowrap">
+                À propos
+              </a>
+              {% if user.is_authenticated and user.membre %}
+                <div class="relative ml-2 sm:ml-0">
+                  <!-- Avatar rond avec initiale -->
+                  <button id="user-menu-btn" class="flex items-center justify-center sm:justify-start space-x-1 sm:space-x-2 rounded-full bg-primary text-white px-3 sm:px-4 py-1 sm:py-2 text-sm sm:text-base font-medium shadow hover:bg-primary/90 transition-all">
+                    <span class="uppercase">{{ user.membre.prenom|default:user.username|first|upper }}</span>
+                    <svg id="arrow-icon" class="w-3 h-3 sm:w-4 sm:h-4 transform transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  <!-- Dropdown -->
+                  <div id="user-dropdown" class="hidden absolute right-0 mt-1 sm:mt-2 w-40 sm:w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden">
+                    <div class="px-3 sm:px-4 py-2 border-b text-xs sm:text-sm text-gray-600 truncate">
+                      Bonjour, <strong>{{ user.membre.prenom }}</strong>
+                    </div>
+                    <a href="{% url 'dashboard' %}" class="block px-3 sm:px-4 py-2 text-xs sm:text-sm text-blue-600 hover:bg-gray-100 truncate">
+                       📊 Tableau de bord
+                    </a>
+                    <form method="post" action="{% url 'logout' %}">
+                      {% csrf_token %}
+                      <button type="submit" class="w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-white bg-red-500 hover:bg-red-600 transition-colors border-t border-gray-100">
+                        🔓 Se déconnecter
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              {% else %}
+                <a href="{% url 'auth' %}" class="text-sm sm:text-base px-3 sm:px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors whitespace-nowrap">
+                Se connecter
+                </a>
+              {% endif %}
+            </div>
+          </div>
+      </nav>
+  </header>
+  <body class="min-h-screen bg-soft-white" >
+        <section class="gradient-hero py-12 sm:py-20 px-4" style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);">
+          <div class="container mx-auto text-center animate-fade-in">
+                {% if message_accueil %}
+                  <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
+                    {{ message_accueil.titre }}
+                  </h1>
+                  <p class="text-base sm:text-lg md:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto">
+                    {{ message_accueil.sous_titre|safe }}
+                  </p>
+                {% else %}
+                  <h1 class="text-5xl md:text-6xl font-bold text-white mb-6">
+                    Ensemble pour l'avenir<br/>de nos enfants
+                  </h1>
+                  <p class="text-xl text-white/90 mb-8 max-w-2xl text-white mx-auto">
+                    Notre association unit les cœurs et les forces pour soutenir
+                    l'éducation des enfants de nos membres disparus. Chaque cotisation
+                    construit leur avenir.
+                  </p>
+                {% endif %}
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="{% url 'auth' %}?tab=register" class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-white hover:bg-white/10 hover:text-white rounded-md border-white text-blue-600 px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 text-sm sm:text-base md:text-lg h-10 sm:h-11 md:h-12">
+                Rejoindre l'association
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 sm:w-5 sm:h-5 ml-1 inline">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#notre-mission" class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-white hover:bg-white/10 hover:text-white rounded-md border-white text-blue-600 px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 text-sm sm:text-base md:text-lg h-10 sm:h-11 md:h-12">
+                En savoir plus
+              </a>
+            </div>
+          </div>
+        </section>
+        <section class="py-8 sm:py-12 md:py-16 px-4">
+          <div class="container mx-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div
+                class="rounded-lg border bg-card text-card-foreground shadow-sm stat-card text-center">
+                <div class="p-6 pt-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart w-12 h-12 text-red-500 mx-auto mb-4">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                  </svg>
+                  <!-- Enfants soutenus -->
+                  <div class="text-3xl font-bold text-deep-blue mb-2">
+                    {{ nombre_enfants }}
+                  </div>
+                  <div class="text-muted-foreground">Enfants soutenus</div>
+                </div>
+              </div>
+              <div
+                class="rounded-lg border bg-card text-card-foreground shadow-sm stat-card text-center">
+                <div class="p-6 pt-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users w-12 h-12 text-blue-500 mx-auto mb-4">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                  <!-- Membres actifs -->
+                  <div class="text-3xl font-bold text-deep-blue mb-2">
+                    {{ nombre_membres }}
+                  </div>
+                  <div class="text-muted-foreground">Membres actifs</div>
+                </div>
+              </div>
+              <div
+                class="rounded-lg border bg-card text-card-foreground shadow-sm stat-card text-center">
+                <div class="p-6 pt-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target w-12 h-12 text-green-500 mx-auto mb-4">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="6"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                  </svg>
+                  <!-- Fonds collectés -->
+                  <div class="text-3xl font-bold text-deep-blue mb-2">
+                    {{ montant_collecte|floatformat:0 }} FCFA
+                  </div>
+                  <div class="text-muted-foreground">Fonds collectés</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="notre-mission" class="py-16 px-4 bg-white">
+          <div class="container mx-auto">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+              <div class="animate-fade-in">
+                {% if section_mission %}
+                  <h2 class="text-4xl font-bold text-deep-blue mb-6">
+                    {{ section_mission.titre }}
+                  </h2>
+                  <p class="text-lg text-muted-foreground mb-6">
+                    {{ section_mission.description }}
+                  </p>
+                  <div class="space-y-4">
+                    {% for point in section_mission.points.all %}
+                      <div class="flex items-center space-x-3">
+                        <div class="w-3 h-3 bg-primary rounded-full"></div>
+                        <span>{{ point.texte }}</span>
+                      </div>
+                    {% empty %}
+                      <p class="text-sm text-muted-foreground">Aucun point renseigné.</p>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                <h2 class="text-4xl font-bold text-deep-blue mb-6">
+                  Notre mission de solidarité
+                </h2>
+                <p class="text-lg text-muted-foreground mb-6">
+                  Depuis 2018, notre association rassemble des amis unis par la
+                  conviction que l'éducation ne doit jamais s'arrêter. Nous
+                  soutenons financièrement les études des enfants de nos membres
+                  décédés, de l'école primaire aux études supérieures.
+                </p>
+                <div class="space-y-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-3 h-3 bg-primary rounded-full"></div>
+                    <span>Soutien scolaire continu et adapté</span>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-3 h-3 bg-secondary rounded-full"></div>
+                    <span>Accompagnement personnalisé par niveau</span>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-3 h-3 bg-success-green rounded-full"></div>
+                    <span>Transparence totale des fonds collectés</span>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+                {% if cotisation_active %}
+                  <div class="custom-gradient rounded-2xl p-8 text-center animate-scale-in">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar w-16 h-16 text-white mx-auto mb-4">
+                  <path d="M8 2v4"></path>
+                  <path d="M16 2v4"></path>
+                  <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                  <path d="M3 10h18"></path>
+                </svg>
+                    <h3 class="text-2xl font-bold text-white mb-4">
+                      Campagne {{ cotisation_active.annee }}
+                    </h3>
+                    <p class="text-white/90 mb-6">
+                      Objectif : {{ cotisation_active.objectif_global|floatformat:0 }} FCFA pour {{ nombre_enfants }} enfants
+                    </p>
+                    <div class="bg-white/20 rounded-lg p-4">
+                      <div class="text-3xl font-bold text-white">
+                        {{ cotisation_active.taux_realisation|floatformat:0 }}%
+                      </div>
+                      <div class="text-white/80">de l'objectif atteint</div>
+                    </div>
+                  </div>
+                  {% else %}
+                  <div class="bg-gradient-to-br from-primary to-secondary rounded-2xl p-8 text-center animate-scale-in">
+                    <h3 class="text-2xl font-bold text-white mb-4">
+                      Aucune campagne en cours
+                    </h3>
+                    <p class="text-white/90 mb-4">
+                      Il n'y a pas de cotisation active pour le moment.
+                    </p>
+                    <p class="text-white/70">
+                      Revenez plus tard ou contactez l'administrateur de l'association.
+                    </p>
+                  </div>
+                {% endif %}
+            </div>
+          </div>
+        </section>
+        <section class="py-16 px-4 bg-gradient-to-br from-blue-50/50 to-white">
+            <div class="container mx-auto max-w-6xl">
+                <!-- En-tête simple -->
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold text-deep-blue mb-4">Témoignages</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                    <!-- FORMULAIRE COMPACT -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-6 text-center">
+                            Laissez votre témoignage
+                        </h3>
+                        <form method="post" class="space-y-4">
+                            {% csrf_token %}
+                            <!-- Nom et Lien côte à côte -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label for="{{ form.nom.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                        {{ form.nom.label }}
+                                    </label>
+                                    {{ form.nom|add_class:"w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" }}
+                                    {% if form.nom.errors %}
+                                        <p class="text-red-500 text-xs mt-1">{{ form.nom.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label for="{{ form.lien_avec_enfant.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                        {{ form.lien_avec_enfant.label }}
+                                    </label>
+                                    {{ form.lien_avec_enfant|add_class:"w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" }}
+                                    {% if form.lien_avec_enfant.errors %}
+                                        <p class="text-red-500 text-xs mt-1">{{ form.lien_avec_enfant.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- Message -->
+                            <div>
+                                <label for="{{ form.message.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                    {{ form.message.label }}
+                                </label>
+                                {{ form.message|add_class:"w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none" }}
+                                {% if form.message.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.message.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <!-- Note avec étoiles -->
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm font-medium text-gray-700">{{ form.nombre_etoiles.label }}</label>
+                                <div class="flex items-center space-x-2">
+                                    {{ form.nombre_etoiles }}
+                                </div>
+                                {% if form.nombre_etoiles.errors %}
+                                    <p class="text-red-500 text-xs mt-1">{{ form.nombre_etoiles.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <!-- Bouton -->
+                            <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                                Publier
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- TÉMOIGNAGES AVEC PAGINATION -->
+                    <div class="space-y-4">
+                        <div id="testimonials-container">
+                            {% for temoignage in temoignages_page %}
+                            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-1">
+                                        <!-- Étoiles -->
+                                        <div class="flex items-center mb-2">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= temoignage.nombre_etoiles %}
+                                                    <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                                {% else %}
+                                                    <i class="fas fa-star text-gray-300 text-sm"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+
+                                        <!-- Message -->
+                                        <p class="text-gray-700 mb-3 italic">"{{ temoignage.message }}"</p>
+
+                                        <!-- Auteur -->
+                                        <div class="flex justify-between items-center text-sm">
+                                            <div>
+                                                <span class="font-semibold text-deep-blue">{{ temoignage.nom }}</span>
+                                                <span class="text-gray-500 ml-2">{{ temoignage.lien_avec_enfant }}</span>
+                                            </div>
+                                            <span class="text-gray-400">{{ temoignage.date_creation|date:"d/m/Y" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-8 text-gray-500">
+                                <i class="fas fa-comments text-4xl mb-3 opacity-50"></i>
+                                <p>Aucun témoignage pour le moment.</p>
+                                <p class="text-sm">Soyez le premier à partager !</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if temoignages_page.has_other_pages %}
+                            <div class="flex justify-center items-center space-x-2 mt-6" id="pagination-container">
+                            <!-- Bouton Précédent -->
+                            {% if temoignages_page.has_previous %}
+                                <button data-page="{{ temoignages_page.previous_page_number }}"
+                                   class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                            {% endif %}
+
+                            <!-- Numéros de page -->
+                            {% for num in temoignages_page.paginator.page_range %}
+                                {% if num == temoignages_page.number %}
+                                    <span class="px-4 py-2 rounded-lg bg-blue-600 text-white">{{ num }}</span>
+                                {% else %}
+                                    <button data-page="{{ num }}"
+                                       class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                                        {{ num }}
+                                    </button>
+                                {% endif %}
+                            {% endfor %}
+
+                            <!-- Bouton Suivant -->
+                            {% if temoignages_page.has_next %}
+                            <button data-page="{{ temoignages_page.next_page_number }}"
+                               class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% if appel_action %}
+            <section class="py-16 px-4 bg-deep-blue text-white text-center">
+              <div class="container mx-auto">
+                <h2 class="text-4xl font-bold mb-6">{{ appel_action.titre }}</h2>
+                <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                  {{ appel_action.texte }}
+                </p>
+                {% if appel_action.texte_bouton %}
+                  <a href="{{ appel_action.url_bouton }}" class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 h-11 rounded-md bg-primary hover:bg-primary/90 text-deep-blue px-8 py-4 text-lg">
+                    {{ appel_action.texte_bouton }}t<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart ml-2 w-5 h-5">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                  </svg>
+                  </a>
+                {% endif %}
+              </div>
+            </section>
+            {% else %}
+            <section class="py-16 px-4 bg-deep-blue text-white">
+              <div class="container mx-auto text-center">
+                <h2 class="text-4xl font-bold mb-6">
+                  Rejoignez notre famille solidaire
+                </h2>
+                <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                  Ensemble, nous construisons un avenir meilleur pour les enfants.
+                  Votre contribution fait la différence.
+                </p>
+                  {% if user.is_authenticated and user.membre %}
+                    <a href="{% url 'effectuer_paiement' %}" class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 h-11 rounded-md bg-primary hover:bg-primary/90 text-deep-blue px-8 py-4 text-lg">
+                  Faire un don<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart ml-2 w-5 h-5">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                  </svg>
+                </a>
+                  {% else %}
+                    <a href="{% url 'auth' %}?next={% url 'effectuer_paiement' %}" class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 h-11 rounded-md bg-primary hover:bg-primary/90 text-deep-blue px-8 py-4 text-lg">
+                  Faire un don<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart ml-2 w-5 h-5">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                  </svg>
+                </a>
+                  {% endif %}
+              </div>
+            </section>
+        {% endif %}
+        <div id="popup-success" class="fixed inset-0 flex items-center justify-center z-50 bg-black/30 hidden">
+          <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-md w-full animate-scale-in">
+            <h2 class="text-xl font-bold text-green-600 mb-2">Merci 🙏</h2>
+            <p class="text-gray-700">Votre témoignage a bien été soumis et sera affiché après validation.</p>
+          </div>
+        </div>
+        <!-- Bouton Back to Top -->
+        <button id="back-to-top" class="fixed bottom-8 right-8 p-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-all opacity-0 invisible">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up">
+                <path d="m5 12 7-7 7 7"/>
+                <path d="M12 19V5"/>
+            </svg>
+        </button>
+        <!-- Variable JS pour indiquer le succès du témoignage -->
+        <script>
+          const TEMOIGNAGE_SUBMIS = {{ temoignage_submitted|yesno:"true,false" }};
+        </script>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+          const userMenuBtn = document.getElementById('user-menu-btn');
+          const userDropdown = document.getElementById('user-dropdown');
+          const arrowIcon = document.getElementById('arrow-icon');
+
+          // 🌟 Gestion des étoiles
+          const ratingSelect = document.querySelector('select[name*="nombre_etoiles"]');
+          const starDisplay = document.getElementById('star-display');
+
+          function updateStarsDisplay(rating) {
+            if (!starDisplay) return;
+            const stars = starDisplay.querySelectorAll('i');
+            stars.forEach((star, index) => {
+              star.className = index < rating
+                ? 'fas fa-star text-yellow-400 cursor-pointer hover:scale-110 transition-transform'
+                : 'fas fa-star text-gray-300 cursor-pointer hover:scale-110 transition-transform';
+            });
+          }
+
+          window.setRating = function(rating) {
+            if (ratingSelect) {
+              ratingSelect.value = rating;
+              ratingSelect.dispatchEvent(new Event('change'));
+            }
+            updateStarsDisplay(rating);
+          };
+
+          if (ratingSelect && starDisplay) {
+            ratingSelect.addEventListener('change', function () {
+              const rating = parseInt(this.value) || 0;
+              updateStarsDisplay(rating);
+            });
+            updateStarsDisplay(parseInt(ratingSelect.value) || 5);
+            const stars = starDisplay.querySelectorAll('i');
+            stars.forEach((star, index) => {
+              star.addEventListener('click', () => setRating(index + 1));
+              star.addEventListener('mouseenter', () => {
+                stars.forEach((s, i) => { if (i <= index) s.classList.add('scale-110'); });
+              });
+              star.addEventListener('mouseleave', () => {
+                stars.forEach((s) => s.classList.remove('scale-110'));
+              });
+            });
+          }
+
+          // ✅ Popup succès témoignage
+          if (typeof TEMOIGNAGE_SUBMIS !== 'undefined' && TEMOIGNAGE_SUBMIS === true) {
+            setTimeout(() => {
+              const popup = document.getElementById("popup-success");
+              if (popup) {
+                popup.classList.remove("hidden");
+                popup.classList.add("flex");
+                setTimeout(() => {
+                  popup.classList.add("hidden");
+                  popup.classList.remove("flex");
+                }, 3000);
+              }
+            }, 500);
+          }
+
+          // 🔁 Pagination AJAX
+          const paginationContainer = document.getElementById('pagination-container');
+          if (paginationContainer) {
+            paginationContainer.addEventListener('click', async function(e) {
+              const button = e.target.closest('button[data-page]');
+              if (!button) return;
+
+              const page = button.getAttribute('data-page');
+              await loadTestimonials(page);
+            });
+          }
+
+          async function loadTestimonials(page) {
+            try {
+              const container = document.getElementById('testimonials-container');
+              if (!container) return;
+              container.innerHTML = '<div class="text-center py-8">Chargement en cours...</div>';
+
+              const response = await fetch(`?page=${page}&ajax=1`);
+              if (!response.ok) throw new Error('Erreur de chargement');
+
+              const data = await response.json();
+              container.innerHTML = data.html;
+
+              if (data.pagination_html) {
+                const paginationElement = document.getElementById('pagination-container');
+                if (paginationElement) {
+                  paginationElement.innerHTML = data.pagination_html;
+                }
+              }
+
+              animateTestimonials();
+
+            } catch (error) {
+              console.error('Erreur:', error);
+              const container = document.getElementById('testimonials-container');
+              if (container) {
+                container.innerHTML = '<div class="text-center py-8 text-red-500">Erreur de chargement des témoignages</div>';
+              }
+            }
+          }
+
+          function animateTestimonials() {
+            const cards = document.querySelectorAll('.bg-white.p-5.rounded-xl');
+            cards.forEach((card, index) => {
+              card.style.opacity = '0';
+              card.style.transform = 'translateY(20px)';
+              setTimeout(() => {
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+              }, index * 150);
+            });
+          }
+
+          // 🔼 Bouton Back to Top
+          const backToTopButton = document.getElementById('back-to-top');
+          window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+              backToTopButton.classList.add('visible');
+              backToTopButton.classList.remove('opacity-0', 'invisible');
+            } else {
+              backToTopButton.classList.remove('visible');
+              backToTopButton.classList.add('opacity-0', 'invisible');
+            }
+          });
+
+          backToTopButton.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+
+          if (userMenuBtn && userDropdown) {
+          userMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userDropdown.classList.toggle('hidden');
+            arrowIcon.classList.toggle('rotate-180');
+         });
+
+          // Fermer le menu quand on clique ailleurs
+          document.addEventListener('click', function() {
+            userDropdown.classList.add('hidden');
+            arrowIcon.classList.remove('rotate-180');
+          });
+    }
+
+        });
+        </script>
+  </body>
+  <footer class="bg-white border-t border-border py-8 px-4">
+          <div class="container mx-auto text-center">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-heart w-6 h-6 text-red-600"
+              >
+                <path
+                  d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                ></path></svg
+              ><span class="text-xl font-bold text-deep-blue"
+                >e-Cotisation</span
+              >
+            </div>
+            <p class="text-muted-foreground">
+              © 2025 e-Cotisation. Une initiative de solidarité et d'entraide.
+            </p>
+          </div>
+        </footer>
+</html>
