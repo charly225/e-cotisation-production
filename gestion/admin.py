@@ -62,7 +62,7 @@ class AppelActionAdmin(admin.ModelAdmin):
 # --- Membre ---
 @admin.register(Membre)
 class MembreAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'prenom', 'email', 'telephone', 'est_actif', 'est_decede')
+    list_display = ('nom', 'prenom', 'email', 'telephone', 'est_actif')
     list_filter = ('est_actif', 'est_decede', 'date_adhesion')
     search_fields = ('nom', 'prenom', 'email')
 
@@ -94,11 +94,12 @@ class ObjectifNiveauCotisationAdmin(admin.ModelAdmin):
     list_display = ('niveau', 'cotisation', 'montant')
     list_filter = ('cotisation', 'niveau')
     search_fields = ('cotisation__libelle',)
+    readonly_fields = ('montant',)  # Champ montant non modifiable
 
 # --- Scolarité enfant ---
 @admin.register(ScolariteEnfant)
 class ScolariteEnfantAdmin(admin.ModelAdmin):
-    list_display = ('enfant', 'niveau', 'annee', 'etablissement')
+    list_display = ('enfant', 'niveau', 'annee', 'montant' ,'etablissement')
     list_filter = ('niveau', 'annee')
     search_fields = ('enfant__nom', 'annee')
 

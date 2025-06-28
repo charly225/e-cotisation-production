@@ -6,7 +6,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from decimal import Decimal
-from ckeditor.fields import RichTextField
+from django_ckeditor_5.fields import CKEditor5Field
 from django.db.models import Sum
 
 def generate_year_choices(start=2020, end=None):
@@ -55,6 +55,10 @@ class Membre(models.Model):
 
     def get_enfants_actifs(self):
         return self.enfants.filter(est_actif=True)
+    
+    def clean(self):
+        if self.est_decede and self.est_actif:
+            raise ValidationError("Un membre décédé doit être inactif.")
 
 
 class Enfant(models.Model):
@@ -117,6 +121,16 @@ class Cotisation(models.Model):
 
     def __str__(self):
         return self.libelle
+    
+    def save(self, *args, **kwargs):
+        # Empecher deux cotisations actives à la fois
+        if self.est_active:
+            # Vérifie s'il existe déjà une cotisation active
+            if Cotisation.objects.filter(est_active=True).exclude(id=self.id).exists():
+                # si existe alors on desactive l'ancienne
+                Cotisation.objects.filter(est_active=True).exclude(id=self.id).update(est_active=False)
+        super().save(*args, **kwargs)
+    
 
     @property
     def montant_collecte(self):
@@ -140,6 +154,16 @@ class Cotisation(models.Model):
         import re
         if not re.match(r'^\d{4}-\d{4}$', self.annee):
             raise ValidationError("L'année doit être au format '2023-2024'.")
+        # Découper l'année en deux parties
+        debut, fin = map(int, self.annee.split("-"))
+
+        # Vérifie que la fin est exactement l'année suivante
+        print(f"début{debut} , fin{fin}")
+        if fin != debut + 1:
+            raise ValidationError("L'année de fin doit être exactement un an après l'année de début.")
+
+        
+        
 
 class NiveauScolaire(models.Model):
     nom = models.CharField(max_length=50)  # Exemple: "6e", "Terminale"
@@ -157,14 +181,27 @@ class ObjectifNiveauCotisation(models.Model):
     montant = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal('0'))]
+        default=0,  # Champ à 0 par défaut
+        validators=[MinValueValidator(Decimal('1'))]
     )
 
     class Meta:
         unique_together = ('niveau', 'cotisation')
 
+    def save(self, *args, **kwargs):
+        # Calcul automatique du montant : somme des ScolariteEnfant pour ce niveau et cette année
+        annee = self.cotisation.annee
+        total = ScolariteEnfant.objects.filter(
+            niveau=self.niveau,
+            annee=annee
+        ).aggregate(somme=Sum('montant'))['somme'] or Decimal('0')
+        self.montant = total
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.niveau.nom} - {self.cotisation.libelle} ({self.montant} FCFA)"
+    
+    
 
 class ScolariteEnfant(models.Model):
     enfant = models.ForeignKey('Enfant', on_delete=models.CASCADE)
@@ -174,13 +211,19 @@ class ScolariteEnfant(models.Model):
         help_text="Format obligatoire : 2023-2024"
     )
     etablissement = models.CharField(max_length=200, blank=True)
-
+    montant = models.DecimalField(
+            max_digits=12,
+            decimal_places=2,
+            validators=[MinValueValidator(Decimal('1'))]
+        )
+    
     class Meta:
         unique_together = ('enfant', 'annee')
         ordering = ['-annee', 'niveau__ordre']
 
     def __str__(self):
         return f"{self.enfant} en {self.niveau.nom} ({self.annee})"
+    
 
     def clean(self):
         # Vérifie le format avec un pattern stricte
@@ -200,6 +243,8 @@ class ScolariteEnfant(models.Model):
             annee=self.annee
         ).exclude(id=self.id).exists():
             raise ValidationError("L'enfant est déjà inscrit pour cette année scolaire.")
+        
+        
 
 class MoyenPaiement(models.Model):
     code = models.CharField(max_length=30, unique=True)
@@ -238,7 +283,11 @@ class Payement(models.Model):
 
     def __str__(self):
         return f"{self.membre.nom_complet} - {self.montant} FCFA ({self.cotisation.libelle})"
-
+    
+    def clean(self):
+        # Vérification du montant
+        if self.montant is not None and self.montant <= 0:
+            raise ValidationError({'montant': "Le montant ne peut pas être négatif."})
 
 
 class ParametrageCotisation(models.Model):
@@ -307,7 +356,6 @@ class MembreRoles(models.Model):
     def __str__(self):
         return f"{self.membre.nom} - {self.role.nom}"
 
-
 # Nouveaux modèles pour améliorer le système
 
 class Notification(models.Model):
@@ -346,7 +394,7 @@ class RappelPaiement(models.Model):
 
 class MessageAccueil(models.Model):
     titre = models.CharField(max_length=200, help_text="Titre principal en haut de la page d'accueil")
-    sous_titre = RichTextField()
+    sous_titre = CKEditor5Field()
     actif = models.BooleanField(default=True)
 
     class Meta:
@@ -378,7 +426,7 @@ class Temoignage(models.Model):
 
 class AppelAction(models.Model):
     titre = models.CharField(max_length=150)
-    texte = RichTextField()
+    texte = CKEditor5Field()
     texte_bouton = models.CharField(max_length=100, default="Commencer maintenant")
     lien_bouton = models.URLField(blank=True, null=True)
     actif = models.BooleanField(default=True)
