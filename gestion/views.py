@@ -146,6 +146,76 @@ def effectuer_paiement(request):
             if not param.est_cotisation_libre:
                 paiement.montant = param.montant_fixe
             elif param.montant_minimum and paiement.montant < param.montant_minimum:
+                # form.add_error('montant', f"Le montant minimum est de {param.montant_minimum} FCFA.")
+                error_msg = f"Le montant minimum est de {param.montant_minimum} FCFA."
+                # Si c'est une requête AJAX, retourner JSON
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'error': error_msg
+                    }, status=400)
+                form.add_error('montant', error_msg)
+                return render(request, 'gestion/paiement.html', {
+                    'form': form,
+                    'cotisations': Cotisation.objects.filter(est_active=True),
+                    'moyens': MoyenPaiement.objects.filter(est_actif=True)
+                })
+
+        paiement.save()
+        tresoriers = MembreRoles.objects.filter(role__nom__iexact='trésorier', est_actif=True)
+        emails_tresoriers = [t.membre.email for t in tresoriers if t.membre.email]
+        if emails_tresoriers:
+            contenu = f"{membre.nom_complet} vient d’effectuer un paiement de {paiement.montant} FCFA pour la cotisation « {paiement.cotisation.libelle} ». Veuillez le valider depuis votre tableau de bord."
+            envoyer_mail(
+                destinataires=emails_tresoriers,
+                sujet="📩 Nouveau paiement en attente de validation",
+                contenu=contenu
+            )
+        # Si c'est une requête AJAX, retourner JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Merci pour votre contribution !',
+                'paiement': {
+                    'montant': paiement.montant,
+                    'cotisation': paiement.cotisation.libelle,
+                    'moyen_paiement': paiement.moyen_paiement.libelle
+                }
+            })
+        
+        messages.success(request, "Merci pour votre contribution !")
+        return redirect('accueil')
+     # Si c'est une requête AJAX avec des erreurs de formulaire
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': False,
+            'errors': form.errors
+        }, status=400)
+
+    objectif_depasse = False
+    cotisation_active = Cotisation.objects.filter(est_active=True).first()
+    if cotisation_active and cotisation_active.montant_collecte >= cotisation_active.objectif_global:
+        objectif_depasse = True
+    return render(request, 'gestion/paiement.html', {
+        'form': form,
+        'cotisations': Cotisation.objects.filter(est_active=True),
+        'moyens': MoyenPaiement.objects.filter(est_actif=True),
+        'objectif_depasse': objectif_depasse
+    })
+
+    membre = request.user.membre
+    form = PaiementForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        paiement = form.save(commit=False)
+        paiement.membre = membre
+        cotisation = paiement.cotisation
+        param = getattr(cotisation, 'parametragecotisation', None)
+
+        if param:
+            if not param.est_cotisation_libre:
+                paiement.montant = param.montant_fixe
+            elif param.montant_minimum and paiement.montant < param.montant_minimum:
                 form.add_error('montant', f"Le montant minimum est de {param.montant_minimum} FCFA.")
                 return render(request, 'gestion/paiement.html', {
                     'form': form,
