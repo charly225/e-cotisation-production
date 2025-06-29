@@ -24,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-m&3ka+3^6^!2_#)c90(945omed1lod#3(+-dh@#j4@*@rsg3u9'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-#ALLOWED_HOSTS = ['charlemagne.theses.ci', 'www.charlemagne.theses.ci', 'localhost']
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['charlemagne.theses.ci', 'www.charlemagne.theses.ci', 'localhost']
+#ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -180,30 +180,29 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#      'default': {
-#          'ENGINE': 'django.db.backends.mysql',
-#          'NAME': 'sc5zds_bd_charlemagne',
-#          'HOST': 'localhost',
-#          'USER': 'sc5zds_bd_charlemagne',
-#          'PORT': '3306',
-#          'PASSWORD': "=JMTfdmrQ6W5",
-#      }
-#  }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'cotisation_bd',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        }
-    }
+     'default': {
+         'ENGINE': 'django.db.backends.mysql',
+         'NAME': 'sc5zds_bd_charlemagne',
+         'HOST': 'localhost',
+         'USER': 'sc5zds_bd_charlemagne',
+         'PORT': '3306',
+         'PASSWORD': "=JMTfdmrQ6W5",
+     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'cotisation_bd',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+#         }
+#     }
 
 
 # Configuration pour l'envoi d'e-mails avec Gmail
