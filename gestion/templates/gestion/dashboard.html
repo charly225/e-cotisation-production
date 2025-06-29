@@ -63,7 +63,25 @@
         .custom-gradient {
             background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
         }
-  </style>
+        
+        /* Animations pour les cartes de statistiques */
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card.opacity-75 {
+            opacity: 0.75;
+        }
+        
+        .stat-card.scale-95 {
+            transform: scale(0.95);
+        }
+        
+        /* Animation de rotation pour l'icône de rafraîchissement */
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
   </head>
   <body class="bg-soft-white">
     <header class="bg-white border-b border-border py-6">
@@ -99,7 +117,7 @@
     <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {% if cotisation_active and not a_contribue %}
         <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded">
-          🎯 Vous n’avez pas encore contribué à la campagne
+          🎯 Vous n'avez pas encore contribué à la campagne
           <strong>{{ cotisation_active.libelle }}</strong>.
           <a href="{% url 'effectuer_paiement' %}" class="underline font-medium text-blue-600 hover:text-blue-800 ml-1">
             Contribuer maintenant
@@ -109,54 +127,48 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {% if is_tresorier %}
           <!-- Carte 1 : Total collecté -->
-          <div class="stat-card">
+          <div class="stat-card" id="stat-total-collecte">
             <p class="text-sm text-muted-foreground">Fonds collectés</p>
-            <p class="text-2xl font-bold text-deep-blue">{{ total_collecte|floatformat:0 }} FCFA</p>
+            <p class="text-2xl font-bold text-deep-blue" id="value-total-collecte">{{ total_collecte|floatformat:0 }} FCFA</p>
           </div>
 
         {% else %}
           <!-- Carte 1 : Taux de participation du membre -->
-          <div class="stat-card">
+          <div class="stat-card" id="stat-taux-participation">
             <p class="text-sm text-muted-foreground">Taux de participation</p>
-            <p class="text-2xl font-bold text-deep-blue">
+            <p class="text-2xl font-bold text-deep-blue" id="value-taux-participation">
               {{ taux_participation|floatformat:1 }}%
               {% if objectif_depasse_par_membre %}
-                <span class="text-green-600 text-sm font-semibold ml-2">(Objectif dépassé 🎉)</span>
+                <span class="text-green-600 text-sm font-semibold ml-2" id="badge-objectif-depasse">(Objectif dépassé 🎉)</span>
               {% endif %}
             </p>
           </div>
         {% endif %}
 
         <!-- Carte 2 : Progression globale -->
-<!--          <div class="stat-card">-->
-<!--            <p class="text-sm text-muted-foreground">Progression globale</p>-->
-<!--            <p class="text-2xl font-bold text-deep-blue">{{ progression|floatformat:0 }}%</p>-->
-<!--          </div>-->
-        <div class="stat-card">
+        <div class="stat-card" id="stat-progression">
           <p class="text-sm text-muted-foreground">Progression globale</p>
-          <p class="text-2xl font-bold text-deep-blue">{{ progression|floatformat:0 }}%
+          <p class="text-2xl font-bold text-deep-blue" id="value-progression">{{ progression|floatformat:0 }}%
             {% if objectif_global_depasse %}
-              <span class="text-green-600 text-sm mt-1">(🎯 Objectif atteint !)</span>
+              <span class="text-green-600 text-sm mt-1" id="badge-objectif-global">(🎯 Objectif atteint !)</span>
             {% endif %}
           </p>
-
-
         </div>
 
         <!-- Carte 3 : Enfants aidés -->
-        <div class="stat-card">
+        <div class="stat-card" id="stat-enfants">
           <p class="text-sm text-muted-foreground">Enfants aidés</p>
-          <p class="text-2xl font-bold text-deep-blue">{{ nombre_enfants }}</p>
+          <p class="text-2xl font-bold text-deep-blue" id="value-enfants">{{ nombre_enfants }}</p>
         </div>
 
         <!-- Carte 4 : Mes contributions -->
-        <div class="stat-card">
+        <div class="stat-card" id="stat-contributions">
           <p class="text-sm text-muted-foreground">Mes contributions</p>
-          <p class="text-2xl font-bold text-deep-blue">{{ mes_contributions|floatformat:0 }} FCFA</p>
+          <p class="text-2xl font-bold text-deep-blue" id="value-contributions">{{ mes_contributions|floatformat:0 }} FCFA</p>
         </div>
       </div>
       {% if derniere_contribution %}
-        <p class="text-sm text-muted-foreground mt-1">
+        <p class="text-sm text-muted-foreground mt-1" id="derniere-contribution">
           🕒 Dernier don : {{ derniere_contribution|date:"d M Y" }}
         </p>
       {% endif %}
@@ -248,6 +260,17 @@
                   <path d="m12 5 7 7-7 7"></path>
                 </svg>
               </a>
+              
+              <button id="btn-refresh-stats" class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-between">
+                Actualiser les statistiques
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw w-4 h-4">
+                  <path d="M21 2v6h-6"></path>
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                  <path d="M3 22v-6h6"></path>
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                </svg>
+              </button>
+              
               <a href="{% url 'modifier_profil' %}" class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-between">
                 Modifier mes informations
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -326,6 +349,149 @@
         const loadingIndicator = document.getElementById('loading-indicator');
         const btnValidation = document.getElementById('btn-validation');
         const btnValidesParMoi = document.getElementById('btn-valides-par-moi');
+        const btnRefreshStats = document.getElementById('btn-refresh-stats');
+
+        // Fonction pour mettre à jour les statistiques
+        async function updateStats() {
+          try {
+            const response = await fetch("{% url 'dashboard_stats' %}", {
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            
+            if (!response.ok) throw new Error('Erreur lors de la récupération des statistiques');
+            
+            const data = await response.json();
+            
+            // Animation de mise à jour pour les cartes
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach(card => {
+              card.classList.add('opacity-75', 'scale-95');
+              setTimeout(() => {
+                card.classList.remove('opacity-75', 'scale-95');
+              }, 300);
+            });
+            
+            // Mise à jour des cartes de statistiques
+            if (data.is_tresorier) {
+              // Pour les trésoriers
+              const totalCollecteEl = document.getElementById('value-total-collecte');
+              if (totalCollecteEl) {
+                totalCollecteEl.textContent = `${Math.round(data.total_collecte).toLocaleString()} FCFA`;
+              }
+            } else {
+              // Pour les membres normaux
+              const tauxParticipationEl = document.getElementById('value-taux-participation');
+              if (tauxParticipationEl) {
+                let html = `${data.taux_participation.toFixed(1)}%`;
+                if (data.objectif_depasse_par_membre) {
+                  html += '<span class="text-green-600 text-sm font-semibold ml-2">(Objectif dépassé 🎉)</span>';
+                }
+                tauxParticipationEl.innerHTML = html;
+              }
+            }
+
+            // Progression globale
+            const progressionEl = document.getElementById('value-progression');
+            if (progressionEl) {
+              let html = `${Math.round(data.progression)}%`;
+              if (data.objectif_global_depasse) {
+                html += '<span class="text-green-600 text-sm mt-1">(🎯 Objectif atteint !)</span>';
+              }
+              progressionEl.innerHTML = html;
+            }
+
+            // Nombre d'enfants
+            const enfantsEl = document.getElementById('value-enfants');
+            if (enfantsEl) {
+              enfantsEl.textContent = data.nombre_enfants;
+            }
+
+            // Mes contributions
+            const contributionsEl = document.getElementById('value-contributions');
+            if (contributionsEl) {
+              contributionsEl.textContent = `${Math.round(data.mes_contributions).toLocaleString()} FCFA`;
+            }
+
+            // Dernière contribution
+            const derniereContributionEl = document.getElementById('derniere-contribution');
+            if (derniereContributionEl) {
+              if (data.derniere_contribution) {
+                derniereContributionEl.textContent = `🕒 Dernier don : ${data.derniere_contribution}`;
+                derniereContributionEl.style.display = 'block';
+              } else {
+                derniereContributionEl.style.display = 'none';
+              }
+            }
+
+            // Mise à jour de la section campagne si elle est affichée
+            if (campagneSection && data.cotisation_active) {
+              const campagneContent = campagneSection.querySelector('.p-4.bg-accent\\/30');
+              if (campagneContent) {
+                const tauxRealisationEl = campagneContent.querySelector('.font-medium');
+                if (tauxRealisationEl) {
+                  tauxRealisationEl.textContent = `${Math.round(data.cotisation_active.taux_realisation)}%`;
+                }
+
+                const progressBar = campagneContent.querySelector('.bg-primary');
+                if (progressBar) {
+                  progressBar.style.width = `${Math.round(data.cotisation_active.taux_realisation)}%`;
+                }
+
+                const objectifEl = campagneContent.querySelector('.text-muted-foreground');
+                if (objectifEl && objectifEl.textContent.includes('Objectif:')) {
+                  objectifEl.textContent = `Objectif: ${Math.round(data.cotisation_active.objectif_global).toLocaleString()} FCFA`;
+                }
+
+                // Mise à jour du message d'objectif dépassé
+                const objectifDepasseDiv = campagneContent.querySelector('.bg-green-100');
+                if (data.cotisation_active.objectif_depasse) {
+                  if (!objectifDepasseDiv) {
+                    const newDiv = document.createElement('div');
+                    newDiv.className = 'mt-2 p-3 bg-green-100 border border-green-300 rounded text-green-700';
+                    newDiv.innerHTML = `🎉 Objectif dépassé ! <br>
+                      <strong>${Math.round(data.cotisation_active.montant_collecte).toLocaleString()} FCFA</strong> collectés sur un objectif de
+                      <strong>${Math.round(data.cotisation_active.objectif_global).toLocaleString()} FCFA</strong>.
+                      <br>Merci pour votre générosité 🙏`;
+                    campagneContent.appendChild(newDiv);
+                  }
+                } else if (objectifDepasseDiv) {
+                  objectifDepasseDiv.remove();
+                }
+              }
+            }
+
+          } catch (error) {
+            console.error('Erreur lors de la mise à jour des statistiques:', error);
+          }
+        }
+
+        // Mise à jour initiale des statistiques
+        updateStats();
+
+        // Mise à jour automatique toutes les 30 secondes
+        setInterval(updateStats, 30000);
+
+        // Mise à jour après validation d'un paiement
+        document.addEventListener('paiementValide', updateStats);
+
+        // Bouton de rafraîchissement manuel
+        if (btnRefreshStats) {
+          btnRefreshStats.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const icon = btnRefreshStats.querySelector('svg');
+            icon.classList.add('animate-spin');
+            btnRefreshStats.disabled = true;
+            
+            try {
+              await updateStats();
+            } finally {
+              icon.classList.remove('animate-spin');
+              btnRefreshStats.disabled = false;
+            }
+          });
+        }
 
         if (btnValidesParMoi && campagneSection) {
           btnValidesParMoi.addEventListener('click', async (e) => {
@@ -333,6 +499,7 @@
             await loadContent("{% url 'paiements_valides_par_moi' %}?ajax=1", campagneSection);
           });
         }
+
         async function loadContent(url, section) {
           try {
             // Afficher l'indicateur de chargement
@@ -381,6 +548,9 @@
                         ✅ ${data.message}
                       </div>
                     `;
+                    
+                    // Déclencher la mise à jour des statistiques
+                    document.dispatchEvent(new CustomEvent('paiementValide'));
                   } else {
                     throw new Error(data.error || 'Erreur inconnue');
                   }
@@ -402,7 +572,6 @@
             section.style.minHeight = '';
           }
         }
-
 
         if (btnHistorique && campagneSection) {
           btnHistorique.addEventListener('click', async (e) => {
@@ -488,13 +657,16 @@
             })
             .then(response => {
               if (!response.ok) throw new Error('Erreur lors de la validation');
-              // Optionnel : animation ou suppression de l’élément
+              // Optionnel : animation ou suppression de l'élément
               const container = form.closest('.bg-white.border.rounded');
               container.innerHTML = `<p class="text-green-600 font-semibold">✅ Paiement validé</p>`;
+              
+              // Déclencher la mise à jour des statistiques
+              document.dispatchEvent(new CustomEvent('paiementValide'));
             })
             .catch(err => {
               console.error(err);
-              alert("Une erreur s’est produite. Réessaye.");
+              alert("Une erreur s'est produite. Réessaye.");
             });
           }
         });

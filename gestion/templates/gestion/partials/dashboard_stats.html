@@ -1,0 +1,51 @@
+{% load humanize %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  {% if is_tresorier %}
+    <!-- Carte 1 : Total collecté -->
+    <div class="stat-card" id="stat-total-collecte">
+      <p class="text-sm text-muted-foreground">Fonds collectés</p>
+      <p class="text-2xl font-bold text-deep-blue" id="value-total-collecte">{{ total_collecte|floatformat:0 }} FCFA</p>
+    </div>
+
+  {% else %}
+    <!-- Carte 1 : Taux de participation du membre -->
+    <div class="stat-card" id="stat-taux-participation">
+      <p class="text-sm text-muted-foreground">Taux de participation</p>
+      <p class="text-2xl font-bold text-deep-blue" id="value-taux-participation">
+        {{ taux_participation|floatformat:1 }}%
+        {% if objectif_depasse_par_membre %}
+          <span class="text-green-600 text-sm font-semibold ml-2" id="badge-objectif-depasse">(Objectif dépassé 🎉)</span>
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+  <!-- Carte 2 : Progression globale -->
+  <div class="stat-card" id="stat-progression">
+    <p class="text-sm text-muted-foreground">Progression globale</p>
+    <p class="text-2xl font-bold text-deep-blue" id="value-progression">{{ progression|floatformat:0 }}%
+      {% if objectif_global_depasse %}
+        <span class="text-green-600 text-sm mt-1" id="badge-objectif-global">(🎯 Objectif atteint !)</span>
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Carte 3 : Enfants aidés -->
+  <div class="stat-card" id="stat-enfants">
+    <p class="text-sm text-muted-foreground">Enfants aidés</p>
+    <p class="text-2xl font-bold text-deep-blue" id="value-enfants">{{ nombre_enfants }}</p>
+  </div>
+
+  <!-- Carte 4 : Mes contributions -->
+  <div class="stat-card" id="stat-contributions">
+    <p class="text-sm text-muted-foreground">Mes contributions</p>
+    <p class="text-2xl font-bold text-deep-blue" id="value-contributions">{{ mes_contributions|floatformat:0 }} FCFA</p>
+  </div>
+</div>
+
+{% if derniere_contribution %}
+  <p class="text-sm text-muted-foreground mt-1" id="derniere-contribution">
+    🕒 Dernier don : {{ derniere_contribution|date:"d M Y" }}
+  </p>
+{% endif %} 

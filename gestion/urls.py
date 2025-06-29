@@ -2,7 +2,7 @@ from django.contrib.auth.views import LogoutView
 from django.urls import path
 from .views import accueil, auth, effectuer_paiement, get_parametrage_cotisation, dashboard, historique_paiements, \
  campagne_courante, modifier_profil, valider_paiement, paiements_a_valider, valider_tous_les_paiements, paiements_valides_par_moi, \
- statut_cotisation, chargement
+ statut_cotisation, chargement, dashboard_stats
 
 urlpatterns = [
  path('', chargement, name='chargement'),
@@ -20,4 +20,5 @@ urlpatterns = [
  path('paiements/valider_tous/', valider_tous_les_paiements, name='valider_tous_les_paiements'),
  path('paiements-valides/', paiements_valides_par_moi, name='paiements_valides_par_moi'),
  path('ajax/statut-cotisation/<int:cotisation_id>/', statut_cotisation, name='statut_cotisation'),
+ path('ajax/dashboard-stats/', dashboard_stats, name='dashboard_stats'),
 ]

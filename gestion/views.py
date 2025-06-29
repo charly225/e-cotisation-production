@@ -165,7 +165,7 @@ def effectuer_paiement(request):
         tresoriers = MembreRoles.objects.filter(role__nom__iexact='trésorier', est_actif=True)
         emails_tresoriers = [t.membre.email for t in tresoriers if t.membre.email]
         if emails_tresoriers:
-            contenu = f"{membre.nom_complet} vient d’effectuer un paiement de {paiement.montant} FCFA pour la cotisation « {paiement.cotisation.libelle} ». Veuillez le valider depuis votre tableau de bord."
+            contenu = f"{membre.nom_complet} vient d'effectuer un paiement de {paiement.montant} FCFA pour la cotisation « {paiement.cotisation.libelle} ». Veuillez le valider depuis votre tableau de bord."
             envoyer_mail(
                 destinataires=emails_tresoriers,
                 sujet="📩 Nouveau paiement en attente de validation",
@@ -227,7 +227,7 @@ def effectuer_paiement(request):
         tresoriers = MembreRoles.objects.filter(role__nom__iexact='trésorier', est_actif=True)
         emails_tresoriers = [t.membre.email for t in tresoriers if t.membre.email]
         if emails_tresoriers:
-            contenu = f"{membre.nom_complet} vient d’effectuer un paiement de {paiement.montant} FCFA pour la cotisation « {paiement.cotisation.libelle} ». Veuillez le valider depuis votre tableau de bord."
+            contenu = f"{membre.nom_complet} vient d'effectuer un paiement de {paiement.montant} FCFA pour la cotisation « {paiement.cotisation.libelle} ». Veuillez le valider depuis votre tableau de bord."
             envoyer_mail(
                 destinataires=emails_tresoriers,
                 sujet="📩 Nouveau paiement en attente de validation",
@@ -478,4 +478,96 @@ def statut_cotisation(request, cotisation_id):
         })
     except Cotisation.DoesNotExist:
         return JsonResponse({'error': 'Introuvable'}, status=404)
+
+@login_required
+def dashboard_stats(request):
+    """Vue pour récupérer les statistiques du dashboard en AJAX"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            membre = request.user.membre
+            is_tresorier = MembreRoles.objects.filter(
+                membre=membre,
+                role__nom__iexact='trésorier',
+                est_actif=True
+            ).exists()
+
+            cotisation_active = Cotisation.objects.filter(est_active=True).first()
+            a_contribue = False
+
+            if cotisation_active:
+                a_contribue = Payement.objects.filter(
+                    membre=request.user.membre,
+                    cotisation=cotisation_active,
+                    validee=True
+                ).exists()
+
+            # Total collecté (global ou personnel)
+            if is_tresorier:
+                total_collecte = Payement.objects.filter(validee=True).aggregate(Sum('montant'))['montant__sum'] or 0
+                mes_contributions = Payement.objects.filter(membre=membre, validee=True).aggregate(Sum('montant'))['montant__sum'] or 0
+            else:
+                total_collecte = Payement.objects.filter(membre=membre, validee=True).aggregate(Sum('montant'))['montant__sum'] or 0
+                mes_contributions = total_collecte
+
+            # Progression de la campagne active
+            progression = 0
+            objectif_global_depasse = False
+            if cotisation_active and cotisation_active.objectif_global:
+                progression = (cotisation_active.montant_collecte / cotisation_active.objectif_global) * 100
+                objectif_global_depasse = progression >= 100
+
+            # Nombre d'enfants aidés
+            nombre_enfants = Enfant.objects.filter(est_actif=True).count()
+
+            # Taux de participation
+            taux_participation_reel = 0
+            taux_participation = 0
+            objectif_depasse_par_membre = False
+            objectif_global_atteint = False
+            
+            if cotisation_active and cotisation_active.objectif_global:
+                taux_participation_reel = (mes_contributions / cotisation_active.objectif_global) * 100
+                taux_participation = min(taux_participation_reel, 100)
+                objectif_global_atteint = cotisation_active.montant_collecte >= cotisation_active.objectif_global
+                objectif_depasse_par_membre = taux_participation_reel > 100 and objectif_global_atteint
+
+            # Dernière contribution validée
+            derniere_contribution = Payement.objects.filter(
+                membre=request.user.membre,
+                validee=True
+            ).aggregate(derniere=Max('date_paiement'))['derniere']
+
+            # Informations sur la cotisation active
+            cotisation_info = None
+            if cotisation_active:
+                cotisation_info = {
+                    'libelle': cotisation_active.libelle,
+                    'annee': cotisation_active.annee,
+                    'taux_realisation': float(cotisation_active.taux_realisation),
+                    'objectif_global': float(cotisation_active.objectif_global),
+                    'montant_collecte': float(cotisation_active.montant_collecte),
+                    'objectif_depasse': cotisation_active.montant_collecte > cotisation_active.objectif_global
+                }
+
+            return JsonResponse({
+                'is_tresorier': is_tresorier,
+                'total_collecte': float(total_collecte),
+                'progression': float(progression),
+                'nombre_enfants': nombre_enfants,
+                'taux_participation': float(taux_participation),
+                'taux_participation_reel': float(taux_participation_reel),
+                'objectif_depasse_par_membre': objectif_depasse_par_membre,
+                'objectif_global_atteint': objectif_global_atteint,
+                'mes_contributions': float(mes_contributions),
+                'a_contribue': a_contribue,
+                'derniere_contribution': derniere_contribution.strftime('%d %b %Y') if derniere_contribution else None,
+                'objectif_global_depasse': objectif_global_depasse,
+                'cotisation_active': cotisation_info
+            })
+
+        except Exception as e:
+            logger.error(f"Erreur dashboard_stats: {str(e)}", exc_info=True)
+            return JsonResponse({'error': 'Erreur lors du chargement des statistiques'}, status=500)
+    
+    return JsonResponse({'error': 'Requête invalide'}, status=400)
 
