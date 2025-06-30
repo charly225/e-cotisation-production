@@ -26,8 +26,8 @@ SECRET_KEY = 'django-insecure-m&3ka+3^6^!2_#)c90(945omed1lod#3(+-dh@#j4@*@rsg3u9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-#ALLOWED_HOSTS = ['charlemagne.theses.ci', 'www.charlemagne.theses.ci', 'localhost']
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['charlemagne.theses.ci', 'www.charlemagne.theses.ci', 'localhost']
+#ALLOWED_HOSTS = []
 
 
 # Application definition
