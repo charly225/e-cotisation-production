@@ -1,34 +1,135 @@
+{% load static %}
 {% load humanize %}
-<div class="p-4 sm:p-6 pt-0 space-y-4">
-  {% if paiements %}
-    {% for paiement in paiements %}
-      <div class="p-4 bg-white rounded-lg border text-sm space-y-1 sm:space-y-2 w-full">
-        <p><strong>Montant :</strong> {{ paiement.montant|intcomma }} FCFA</p>
-        <p><strong>Campagne :</strong>
-          {% if paiement.cotisation %}
-            {{ paiement.cotisation.libelle|default:"Non spécifiée" }}
-          {% else %}
-            Campagne inconnue
-          {% endif %}
-        </p>
-        <p><strong>Date :</strong> {{ paiement.date_paiement|date:"d/m/Y" }}</p>
-        <p><strong>Moyen :</strong>
-          {% if paiement.moyen_paiement %}
-            {{ paiement.moyen_paiement.libelle }}
-          {% else %}
-            Non précisé
-          {% endif %}
-        </p>
-        <p><strong>Validé par:</strong>
-          {% if paiement.validee_par %}
-            {{ paiement.validee_par.prenom }} {{ paiement.validee_par.nom }}
-          {% else %}
-            Validateur inconnu
-          {% endif %}
-        </p>
+
+<!-- Section de filtres et recherche -->
+<div class="mb-4 sm:mb-6 bg-white rounded-lg border border-gray-200 p-3 sm:p-4 shadow-sm">
+  <div class="flex flex-col gap-3 sm:gap-4">
+    <!-- Barre de recherche -->
+    <div class="flex-1">
+      <div class="relative">
+        <input type="text" id="search-paiements" placeholder="Rechercher..." 
+               class="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+        <svg class="absolute left-2.5 sm:left-3 top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <!-- Indicateur de chargement -->
+        <div id="search-loading" class="absolute right-2.5 sm:right-3 top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-blue-500 hidden">
+          <svg class="animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
       </div>
-    {% endfor %}
-  {% else %}
-    <p class="text-muted-foreground">Aucun paiement enregistré.</p>
-  {% endif %}
+    </div>
+    
+    <!-- Filtres par période -->
+    <div class="flex flex-col sm:flex-row gap-2">
+      <select id="filter-periode" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+        <option value="">Toutes les périodes</option>
+        <option value="7">7 derniers jours</option>
+        <option value="30">30 derniers jours</option>
+        <option value="90">3 derniers mois</option>
+        <option value="365">Cette année</option>
+      </select>
+      
+      <!-- Tri -->
+      <select id="sort-paiements" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+        <option value="-date_paiement">Plus récent</option>
+        <option value="date_paiement">Plus ancien</option>
+        <option value="-montant">Montant décroissant</option>
+        <option value="montant">Montant croissant</option>
+      </select>
+      
+      <!-- Bouton de réinitialisation -->
+      <button id="reset-filters" class="px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span class="hidden sm:inline">Réinitialiser</span>
+        <span class="sm:hidden">Reset</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Résultats de recherche -->
+  <div id="search-results" class="mt-3 text-xs sm:text-sm text-gray-600 hidden">
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span id="results-count">0</span> paiement(s) trouvé(s)
+    </div>
+  </div>
+</div>
+
+<!-- Liste des paiements -->
+<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+  <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Historique de vos paiements</h3>
+  </div>
+  
+  <div id="paiements-container">
+    {% if paiements %}
+      <div class="divide-y divide-gray-200">
+        {% for paiement in paiements %}
+          <div class="paiement-item p-4 sm:p-6 hover:bg-gray-50 transition-all duration-200" 
+               data-montant="{{ paiement.montant }}" 
+               data-cotisation="{{ paiement.cotisation.libelle|lower }}" 
+               data-moyen="{{ paiement.moyen_paiement.libelle|lower }}"
+               data-date="{{ paiement.date_paiement|date:'Y-m-d' }}">
+            <div class="flex items-center justify-between">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 sm:gap-3">
+                  <div class="flex-shrink-0">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                      {{ paiement.cotisation.libelle }}
+                    </p>
+                    <p class="text-xs sm:text-sm text-gray-500">
+                      {{ paiement.moyen_paiement.libelle }} • {{ paiement.date_paiement|date:"d/m/Y" }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 sm:gap-4">
+                <div class="text-right">
+                  <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ paiement.montant|floatformat:0 }} FCFA</p>
+                  <p class="text-xs sm:text-sm text-green-600 font-medium">Validé</p>
+                  {% if paiement.validee_par %}
+                  <p class="text-xs text-gray-500 mt-1">
+                    Validé par : <span class="font-semibold">{{ paiement.validee_par.nom }} {{ paiement.validee_par.prenom }}</span>
+                  </p>
+                  {% endif %}
+                </div>
+                <div class="flex-shrink-0">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-8 sm:p-12 text-center">
+        <svg class="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun paiement</h3>
+        <p class="mt-1 text-xs sm:text-sm text-gray-500">Vous n'avez pas encore effectué de paiement.</p>
+        <div class="mt-4 sm:mt-6">
+          <a href="{% url 'effectuer_paiement' %}" class="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Faire un don
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
 </div>
