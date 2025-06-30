@@ -33,10 +33,16 @@ class RegisterForm(forms.ModelForm):
             raise forms.ValidationError("Les mots de passe ne correspondent pas.")
         return cleaned_data
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Un compte existe déjà avec cet email.")
+        return email
+
 
 # Formulaire de connexion
 class LoginForm(AuthenticationForm):
-    username = forms.CharField(label='Nom d’utilisateur')
+    username = forms.CharField(label="Nom d'utilisateur")
     password = forms.CharField(widget=forms.PasswordInput, label='Mot de passe')
 
 class PaiementForm(forms.ModelForm):

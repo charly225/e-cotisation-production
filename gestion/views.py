@@ -104,8 +104,12 @@ def auth(request):
         if 'login_submit' in request.POST and login_form.is_valid():
             user = login_form.get_user()
             login(request, user)
-            next_url = request.POST.get('next') #écupéré du champ hidden
-            return redirect(next_url or 'accueil')  # redirection vers next si présent
+            next_url = request.POST.get('next')
+            messages.success(request, "Connexion réussie !")
+            redirect_url = f"{reverse('auth')}?login_success=1"
+            if next_url:
+                redirect_url += f"&next={next_url}"
+            return redirect(redirect_url)
 
 
         elif 'register_submit' in request.POST and register_form.is_valid():

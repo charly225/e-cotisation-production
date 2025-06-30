@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23ff0000' d='M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'/%3E%3C/svg%3E" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
     .auth-container { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
@@ -58,7 +61,9 @@
         {% if request.GET.next %}
           <input type="hidden" name="next" value="{{ request.GET.next }}">
         {% endif %}
-        {{ login_form.non_field_errors }}
+        <div id="login-error-msg" style="display:none;">
+          {{ login_form.non_field_errors|join:'<br>' }}
+        </div>
 
         <div class="mb-5">
           {{ login_form.username.label_tag }}
@@ -81,7 +86,19 @@
         {% if request.GET.next %}
           <input type="hidden" name="next" value="{{ request.GET.next }}">
         {% endif %}
-        {{ register_form.non_field_errors }}
+        <div id="register-error-msg" style="display:none;">
+          {{ register_form.non_field_errors|join:'<br>' }}
+          {% for field in register_form %}
+            {% for error in field.errors %}
+              <span data-field-label="{{ field.label }}">{{ field.label }} : {{ error }}</span><br>
+            {% endfor %}
+          {% endfor %}
+        </div>
+        <div id="register-success-msg" style="display:none;">
+          {% for message in messages %}
+            {% if message.tags == 'success' %}{{ message }}{% endif %}
+          {% endfor %}
+        </div>
 
         <div class="mb-5">
           {{ register_form.nom_complet.label_tag }}
@@ -140,6 +157,58 @@
         switchTab('register');
       } else {
         switchTab('login');  // par défaut
+      }
+
+      // Config Toastr
+      toastr.options.positionClass = 'toast-top-right';
+
+      // Gestion des toasts connexion/inscription
+      const loginErrorMsg = document.getElementById('login-error-msg');
+      const registerErrorMsg = document.getElementById('register-error-msg');
+      const registerSuccessMsg = document.getElementById('register-success-msg');
+
+      // Si erreur inscription, forcer l'onglet Inscription
+      if (registerErrorMsg && registerErrorMsg.textContent.trim()) {
+        switchTab('register');
+      }
+
+      // Erreur connexion
+      if (loginErrorMsg && loginErrorMsg.textContent.trim()) {
+        toastr.error(loginErrorMsg.innerHTML, 'Erreur de connexion', {timeOut: 5000, closeButton: true, progressBar: true});
+        setTimeout(() => {
+          const userInput = document.querySelector('#login-form input[name="username"]');
+          if (userInput) userInput.focus();
+        }, 600);
+      }
+      // Erreur inscription
+      else if (registerErrorMsg && registerErrorMsg.textContent.trim()) {
+        // Remplacer les noms de champs par les labels dans le toast
+        let html = registerErrorMsg.innerHTML.replace(/data-field-label="([^"]+)"/g, '');
+        toastr.error(html, "Erreur d'inscription", {timeOut: 5000, closeButton: true, progressBar: true});
+        setTimeout(() => {
+          if (registerErrorMsg.innerHTML.includes('email')) {
+            const emailInput = document.querySelector('#register-form input[name="email"]');
+            if (emailInput) emailInput.focus();
+          } else if (registerErrorMsg.innerHTML.includes('Nom d\'utilisateur')) {
+            const userInput = document.querySelector('#register-form input[name="username"]');
+            if (userInput) userInput.focus();
+          } else {
+            const nomInput = document.querySelector('#register-form input[name="nom_complet"]');
+            if (nomInput) nomInput.focus();
+          }
+        }, 600);
+      }
+      // Succès inscription
+      else if (registerSuccessMsg && registerSuccessMsg.textContent.trim() && params.get('login_success') !== '1') {
+        toastr.success(registerSuccessMsg.textContent.trim(), 'Inscription réussie', {timeOut: 4000, closeButton: true, progressBar: true});
+      }
+      // Succès connexion
+      if (params.get('login_success') === '1') {
+        toastr.success('Bienvenue sur la plateforme !', 'Connexion réussie', {timeOut: 2000, closeButton: true, progressBar: true});
+        setTimeout(() => {
+          const nextUrl = params.get('next') || '/';
+          window.location.href = nextUrl;
+        }, 2200);
       }
     });
   </script>
