@@ -1,0 +1,296 @@
+{% load static %}
+{% load humanize %}
+{% load custom_tags %}
+
+<!-- Section d'alerte pour non-contributeurs -->
+{% if cotisation_active and not a_contribue %}
+  <div class="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-400 text-yellow-800 rounded-lg shadow-sm">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm">
+          🎯 Vous n'avez pas encore contribué à la campagne <strong>{{ cotisation_active.libelle }}</strong>.
+          <a href="{% url 'effectuer_paiement' %}" class="underline font-medium text-blue-600 hover:text-blue-800 ml-1">
+            Contribuer maintenant
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Section 1: Statistiques principales (KPI) -->
+<section class="mb-10">
+  <div class="flex items-center justify-between mb-8">
+    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+      <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+      </svg>
+      Vue d'ensemble
+    </h2>
+    <div class="flex items-center gap-3">
+      <button id="btn-refresh-stats" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw">
+          <path d="M21 2v6h-6"></path>
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+          <path d="M3 22v-6h6"></path>
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+        </svg>
+        Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Grille des statistiques principales -->
+  {% if is_tresorier %}
+    <!-- Grille pour trésoriers (6 cartes) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+  {% else %}
+    <!-- Grille pour membres normaux (4 cartes) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  {% endif %}
+    {% if is_tresorier %}
+      <!-- Carte 1 : Total collecté (toutes campagnes) - PRIORITÉ HAUTE -->
+      <div class="stat-card bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200" id="stat-total-collecte">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-blue-700 font-medium">Total collecté</p>
+            <p class="text-xs text-blue-600">Toutes campagnes</p>
+          </div>
+          <div class="text-blue-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-blue-800 mt-2" id="value-total-collecte">{{ total_collecte_toutes_campagnes|floatformat:0 }} FCFA</p>
+      </div>
+
+      <!-- Carte 2 : Collecté campagne active - PRIORITÉ HAUTE -->
+      <div class="stat-card bg-gradient-to-br from-green-50 to-green-100 border-green-200" id="stat-collecte-campagne-active">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-green-700 font-medium">Collecté actuel</p>
+            <p class="text-xs text-green-600">Campagne active</p>
+          </div>
+          <div class="text-green-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-green-800 mt-2" id="value-collecte-campagne-active">{{ total_collecte_campagne_active|floatformat:0 }} FCFA</p>
+      </div>
+
+      <!-- Carte 3 : Taux de participation (campagne active) pour trésorier -->
+      <div class="stat-card bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200" id="stat-taux-participation-tresorier">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-purple-700 font-medium">Ma participation</p>
+            <p class="text-xs text-purple-600">Campagne active</p>
+          </div>
+          <div class="text-purple-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-purple-800 mt-2" id="value-taux-participation-tresorier">
+          {{ taux_participation|floatformat:2 }}%
+          {% if objectif_depasse_par_membre %}
+            <span class="text-green-600 text-sm font-semibold ml-2" id="badge-objectif-depasse-tresorier">(Objectif dépassé 🎉)</span>
+          {% endif %}
+        </p>
+      </div>
+
+    {% else %}
+      <!-- Carte 1 : Taux de participation du membre (campagne active) - PRIORITÉ HAUTE -->
+      <div class="stat-card bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200" id="stat-taux-participation">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-purple-700 font-medium">Ma participation</p>
+            <p class="text-xs text-purple-600">Campagne active</p>
+          </div>
+          <div class="text-purple-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-purple-800 mt-2" id="value-taux-participation">
+          {{ taux_participation|floatformat:2 }}%
+          {% if objectif_depasse_par_membre %}
+            <span class="text-green-600 text-sm font-semibold ml-2" id="badge-objectif-depasse">(Objectif dépassé 🎉)</span>
+          {% endif %}
+        </p>
+      </div>
+
+      <!-- Carte 2 : Ma contribution campagne active - PRIORITÉ HAUTE -->
+      <div class="stat-card bg-gradient-to-br from-green-50 to-green-100 border-green-200" id="stat-contribution-campagne-active">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-green-700 font-medium">Ma contribution</p>
+            <p class="text-xs text-green-600">Campagne active</p>
+          </div>
+          <div class="text-green-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-green-800 mt-2" id="value-contribution-campagne-active">{{ mes_contributions_campagne_active|floatformat:0 }} FCFA</p>
+      </div>
+    {% endif %}
+
+    <!-- Carte 4 : Progression globale (campagne active) - PRIORITÉ HAUTE -->
+    <div class="stat-card bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200" id="stat-progression">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-orange-700 font-medium">Progression</p>
+          <p class="text-xs text-orange-600">Campagne active</p>
+        </div>
+        <div class="text-orange-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-orange-800 mt-2" id="value-progression">{{ progression|floatformat:2 }}%
+        {% if objectif_global_depasse %}
+          <span class="text-green-600 text-sm mt-1" id="badge-objectif-global">(🎯 Objectif atteint !)</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <!-- Carte 5 : Enfants aidés - PRIORITÉ MOYENNE -->
+    <div class="stat-card bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200" id="stat-enfants">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-pink-700 font-medium">Enfants aidés</p>
+          <p class="text-xs text-pink-600">Impact social</p>
+        </div>
+        <div class="text-pink-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+          </svg>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-pink-800 mt-2" id="value-enfants">{{ nombre_enfants }}</p>
+    </div>
+
+    <!-- Carte 6 : Mes contributions (toutes campagnes) - PRIORITÉ MOYENNE -->
+    <div class="stat-card bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200" id="stat-contributions">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-indigo-700 font-medium">Mes contributions</p>
+          <p class="text-xs text-indigo-600">Toutes campagnes</p>
+        </div>
+        <div class="text-indigo-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+        </div>
+      </div>
+      <p class="text-2xl font-bold text-indigo-800 mt-2" id="value-contributions">{{ mes_contributions_toutes_campagnes|floatformat:0 }} FCFA</p>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Informations détaillées de la campagne active -->
+{% if cotisation_active %}
+  <section class="mb-8">
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-blue-800 flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Détails de la campagne active : {{ cotisation_active.libelle }}
+        </h3>
+        <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+          {{ cotisation_active.annee }}
+        </span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% if is_tresorier %}
+          <div class="bg-white rounded-lg p-4 border border-blue-200">
+            <p class="text-sm text-blue-600 mb-1">Collecté pour cette campagne</p>
+            <p class="text-xl font-bold text-blue-800">{{ total_collecte_campagne_active|floatformat:0 }} FCFA</p>
+          </div>
+        {% else %}
+          <div class="bg-white rounded-lg p-4 border border-blue-200">
+            <p class="text-sm text-blue-600 mb-1">Ma contribution pour cette campagne</p>
+            <p class="text-xl font-bold text-blue-800">{{ mes_contributions_campagne_active|floatformat:0 }} FCFA</p>
+          </div>
+        {% endif %}
+        <div class="bg-white rounded-lg p-4 border border-blue-200">
+          <p class="text-sm text-blue-600 mb-1">Objectif de la campagne</p>
+          <p class="text-xl font-bold text-blue-800">{{ cotisation_active.objectif_global|floatformat:0 }} FCFA</p>
+        </div>
+        <div class="bg-white rounded-lg p-4 border border-blue-200">
+          <p class="text-sm text-blue-600 mb-1">Taux de réalisation</p>
+          <p class="text-xl font-bold text-blue-800">{{ cotisation_active.taux_realisation|floatformat:2 }}%</p>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+<!-- Section 3: Graphiques et analyses -->
+<section class="mb-8">
+  <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+    </svg>
+    Analyses et tendances
+  </h3>
+  
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Graphique d'évolution des contributions -->
+    <div class="rounded-lg border bg-white text-gray-900 shadow-sm card-hover" data-chart="evolution">
+      <div class="flex flex-col space-y-1.5 p-6">
+        <h4 class="text-lg font-semibold leading-none tracking-tight text-gray-900" id="evolution-title">
+          📈 Évolution des contributions
+        </h4>
+        <p class="text-sm text-gray-600" id="evolution-subtitle">Progression des dons dans le temps</p>
+      </div>
+      <div class="p-6 pt-0">
+        <canvas id="evolutionChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Graphique des moyens de paiement -->
+    <div class="rounded-lg border bg-white text-gray-900 shadow-sm card-hover" data-chart="moyens">
+      <div class="flex flex-col space-y-1.5 p-6">
+        <h4 class="text-lg font-semibold leading-none tracking-tight text-gray-900" id="moyens-title">
+          💳 Répartition des moyens de paiement
+        </h4>
+        <p class="text-sm text-gray-600" id="moyens-subtitle">Répartition par type de paiement</p>
+      </div>
+      <div class="p-6 pt-0">
+        <canvas id="moyensPaiementChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphique Top contributeurs (pour trésoriers) -->
+  {% if is_tresorier %}
+    <div class="mt-6" data-chart="top-contributeurs">
+      <div class="rounded-lg border bg-white text-gray-900 shadow-sm card-hover">
+        <div class="flex flex-col space-y-1.5 p-6">
+          <h4 class="text-lg font-semibold leading-none tracking-tight text-gray-900">
+            🏆 Top 5 des contributeurs
+          </h4>
+          <p class="text-sm text-gray-600">Les membres les plus généreux</p>
+        </div>
+        <div class="p-6 pt-0">
+          <canvas id="topContributeursChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</section> 

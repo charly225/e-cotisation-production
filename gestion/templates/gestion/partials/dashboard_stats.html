@@ -13,7 +13,7 @@
     <div class="stat-card" id="stat-taux-participation">
       <p class="text-sm text-muted-foreground">Taux de participation</p>
       <p class="text-2xl font-bold text-deep-blue" id="value-taux-participation">
-        {{ taux_participation|floatformat:1 }}%
+        {{ taux_participation|floatformat:2 }}%
         {% if objectif_depasse_par_membre %}
           <span class="text-green-600 text-sm font-semibold ml-2" id="badge-objectif-depasse">(Objectif dépassé 🎉)</span>
         {% endif %}
@@ -24,7 +24,7 @@
   <!-- Carte 2 : Progression globale -->
   <div class="stat-card" id="stat-progression">
     <p class="text-sm text-muted-foreground">Progression globale</p>
-    <p class="text-2xl font-bold text-deep-blue" id="value-progression">{{ progression|floatformat:0 }}%
+    <p class="text-2xl font-bold text-deep-blue" id="value-progression">{{ progression|floatformat:2 }}%
       {% if objectif_global_depasse %}
         <span class="text-green-600 text-sm mt-1" id="badge-objectif-global">(🎯 Objectif atteint !)</span>
       {% endif %}
