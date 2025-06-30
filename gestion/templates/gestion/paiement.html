@@ -65,10 +65,13 @@
                 <!-- Montant -->
                 <div>
                   <label class="block font-medium text-base">Montant</label>
-                  {{ form.montant|add_class:"mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" }}
-                    <p id="montant-help" class="text-sm text-gray-500 mt-1 hidden">
-                        Le montant de cette cotisation est fixe.
-                    </p>
+                  {% if parametrage and not parametrage.est_cotisation_libre %}
+                    <input type="number" name="montant" value="{{ parametrage.montant_fixe }}" readonly
+                      class="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed" />
+                    <p class="text-sm text-gray-500 mt-1">Le montant de cette cotisation est fixe.</p>
+                  {% else %}
+                    {{ form.montant|add_class:"mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" }}
+                  {% endif %}
                   {% for error in form.montant.errors %}
                     <p class="text-red-500 text-sm">{{ error }}</p>
                   {% endfor %}

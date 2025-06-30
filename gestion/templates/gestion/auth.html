@@ -172,14 +172,6 @@
         switchTab('register');
       }
 
-      // Erreur connexion
-      if (loginErrorMsg && loginErrorMsg.textContent.trim()) {
-        toastr.error(loginErrorMsg.innerHTML, 'Erreur de connexion', {timeOut: 5000, closeButton: true, progressBar: true});
-        setTimeout(() => {
-          const userInput = document.querySelector('#login-form input[name="username"]');
-          if (userInput) userInput.focus();
-        }, 600);
-      }
       // Erreur inscription
       else if (registerErrorMsg && registerErrorMsg.textContent.trim()) {
         // Remplacer les noms de champs par les labels dans le toast
@@ -204,12 +196,31 @@
       }
       // Succès connexion
       if (params.get('login_success') === '1') {
-        toastr.success('Bienvenue sur la plateforme !', 'Connexion réussie', {timeOut: 2000, closeButton: true, progressBar: true});
-        setTimeout(() => {
-          const nextUrl = params.get('next') || '/';
-          window.location.href = nextUrl;
-        }, 2200);
+        const nextUrl = params.get('next') || '/accueil/';
+        window.location.href = nextUrl;
       }
+
+      // Onglet actif selon le contexte Django
+  const activeTab = "{{ active_tab }}";
+  if (activeTab === "register") {
+    switchTab('register');
+  } else {
+    switchTab('login');
+  }
+
+  // Toastr pour erreurs personnalisées
+  {% if login_error %}
+    toastr.error("{{ login_error|escapejs }}", "Erreur de connexion", {timeOut: 5000, closeButton: true, progressBar: true});
+    switchTab('login');
+  {% endif %}
+  {% if register_error %}
+    toastr.error("{{ register_error|escapejs }}", "Erreur d'inscription", {timeOut: 5000, closeButton: true, progressBar: true});
+    switchTab('register');
+  {% endif %}
+  {% if register_success %}
+    toastr.success("{{ register_success|escapejs }}", "Inscription réussie", {timeOut: 4000, closeButton: true, progressBar: true});
+    switchTab('login');
+  {% endif %}
     });
   </script>
 </body>

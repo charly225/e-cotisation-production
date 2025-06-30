@@ -1,3 +1,4 @@
+{% load l10n %}
 <div class="rounded-lg border bg-card text-card-foreground shadow-sm card-hover w-full">
   <div class="flex flex-col space-y-1.5 p-4 sm:p-6">
     <h3 class="text-lg sm:text-xl lg:text-2xl font-semibold leading-none tracking-tight flex items-center text-deep-blue">
@@ -28,8 +29,22 @@
           <span>Progression</span>
           <span class="font-medium">{{ cotisation_active.taux_realisation|floatformat:2 }}%</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-3 sm:h-4 border border-gray-300 overflow-hidden">
-          <div class="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out" style="width: {{ cotisation_active.taux_realisation|floatformat:2 }}%;"></div>
+        <div class="w-full h-3 sm:h-4 rounded-full overflow-hidden border border-gray-300 bg-gray-200">
+          <div 
+            class="
+              h-full transition-all duration-500 ease-out
+              {% if cotisation_active.taux_realisation >= 100 %}
+          bg-green-500
+              {% elif cotisation_active.taux_realisation >= 75 %}
+          bg-blue-500
+              {% elif cotisation_active.taux_realisation >= 40 %}
+          bg-yellow-400
+              {% else %}
+          bg-red-400
+              {% endif %}
+            "
+            style="width: {{ cotisation_active.taux_realisation|unlocalize|floatformat:2|default:'0' }}%;">
+          </div>
         </div>
         <p class="text-xs sm:text-sm text-muted-foreground">
           Objectif: {{ cotisation_active.objectif_global|floatformat:0 }} FCFA
@@ -54,5 +69,5 @@
       <p class="text-xs sm:text-sm text-muted-foreground">Aucune campagne active actuellement.</p>
     </div>
     {% endif %}
-  </div>
+  </div>
 </div>

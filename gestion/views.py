@@ -100,37 +100,78 @@ def chargement(request):
 def auth(request):
     login_form = LoginForm(request, data=request.POST or None)
     register_form = RegisterForm(request.POST or None)
+    active_tab = 'login'  # Par défaut
+
+    login_error = ''
+    register_error = ''
+    register_success = ''
+
     if request.method == 'POST':
-        if 'login_submit' in request.POST and login_form.is_valid():
-            user = login_form.get_user()
-            login(request, user)
-            next_url = request.POST.get('next')
-            messages.success(request, "Connexion réussie !")
-            redirect_url = f"{reverse('auth')}?login_success=1"
-            if next_url:
-                redirect_url += f"&next={next_url}"
-            return redirect(redirect_url)
+        if 'login_submit' in request.POST:
+            active_tab = 'login'
+            if login_form.is_valid():
+                user = login_form.get_user()
+                login(request, user)
+                next_url = request.POST.get('next')
+                messages.success(request, "Connexion réussie !")
+                redirect_url = f"{reverse('auth')}?login_success=1"
+                if next_url:
+                    redirect_url += f"&next={next_url}"
+                return redirect(redirect_url)
+            else:
+                # Erreurs du formulaire de connexion (non_field_errors)
+                errors = login_form.non_field_errors()
+                if errors:
+                    login_error = ' '.join(errors)
+                else:
+                    login_error = "Identifiants incorrects. Veuillez réessayer."
 
+        elif 'register_submit' in request.POST:
+            active_tab = 'register'
+            if register_form.is_valid():
+                user = register_form.save(commit=False)
+                user.set_password(register_form.cleaned_data['password'])
+                user.save()
+                nom_complet = register_form.cleaned_data['nom_complet']
+                nom, *prenom = nom_complet.strip().split(' ', 1)
+                from .models import Membre
+                Membre.objects.create(
+                    user=user,
+                    nom=nom,
+                    prenom=prenom[0] if prenom else '',
+                    email=user.email
+                )
+                register_success = "Compte créé avec succès. Vous pouvez maintenant vous connecter."
+                next_url = request.POST.get('next')
+                # On force l'onglet login après inscription réussie
+                return redirect(f"{reverse('auth')}?tab=login&register_success=1" + (f"&next={next_url}" if next_url else ""))
+            else:
+                # Construction d'un message d'erreur détaillé pour chaque champ
+                error_list = []
+                for field in register_form:
+                    for error in field.errors:
+                        error_list.append(f"{field.label} : {error}")
+                for error in register_form.non_field_errors():
+                    error_list.append(error)
+                if error_list:
+                    register_error = '<br>'.join(error_list)
+                else:
+                    register_error = "Merci de corriger les erreurs du formulaire d'inscription."
 
-        elif 'register_submit' in request.POST and register_form.is_valid():
-            user = register_form.save(commit=False)
-            user.set_password(register_form.cleaned_data['password'])
-            user.save()
-            nom_complet = register_form.cleaned_data['nom_complet']
-            nom, *prenom = nom_complet.strip().split(' ', 1)
-            from .models import Membre
-            Membre.objects.create(
-                user=user,
-                nom=nom,
-                prenom=prenom[0] if prenom else '',
-                email=user.email
-            )
-            messages.success(request, "Compte créé avec succès. Vous pouvez maintenant vous connecter.")
-            next_url = request.POST.get('next')
-            return redirect(f"{reverse('auth')}?next={next_url}" if next_url else 'auth')
+    # Gestion des messages de succès après redirection
+    if request.GET.get('register_success') == '1':
+        register_success = "Compte créé avec succès. Vous pouvez maintenant vous connecter."
+        active_tab = 'login'
+    elif request.GET.get('tab') == 'register':
+        active_tab = 'register'
+
     context = {
         'login_form': login_form,
-        'register_form': register_form
+        'register_form': register_form,
+        'active_tab': active_tab,
+        'login_error': login_error,
+        'register_error': register_error,
+        'register_success': register_success,
     }
     return render(request, 'gestion/auth.html', context)
 
@@ -140,6 +181,10 @@ def effectuer_paiement(request):
     membre = request.user.membre
     form = PaiementForm(request.POST or None)
 
+    # Récupérer la cotisation active et son paramétrage (pour le template)
+    cotisation_active = Cotisation.objects.filter(est_active=True).first()
+    parametrage = getattr(cotisation_active, 'parametragecotisation', None) if cotisation_active else None
+
     if request.method == 'POST' and form.is_valid():
         paiement = form.save(commit=False)
         paiement.membre = membre
@@ -148,11 +193,9 @@ def effectuer_paiement(request):
 
         if param:
             if not param.est_cotisation_libre:
-                paiement.montant = param.montant_fixe
+                paiement.montant = param.montant_fixe  # Forcer le montant fixe côté serveur
             elif param.montant_minimum and paiement.montant < param.montant_minimum:
-                # form.add_error('montant', f"Le montant minimum est de {param.montant_minimum} FCFA.")
                 error_msg = f"Le montant minimum est de {param.montant_minimum} FCFA."
-                # Si c'est une requête AJAX, retourner JSON
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({
                         'success': False,
@@ -162,7 +205,9 @@ def effectuer_paiement(request):
                 return render(request, 'gestion/paiement.html', {
                     'form': form,
                     'cotisations': Cotisation.objects.filter(est_active=True),
-                    'moyens': MoyenPaiement.objects.filter(est_actif=True)
+                    'moyens': MoyenPaiement.objects.filter(est_actif=True),
+                    'objectif_depasse': False,
+                    'parametrage': parametrage
                 })
 
         paiement.save()
@@ -175,7 +220,6 @@ def effectuer_paiement(request):
                 sujet="📩 Nouveau paiement en attente de validation",
                 contenu=contenu
             )
-        # Si c'est une requête AJAX, retourner JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': True,
@@ -186,10 +230,9 @@ def effectuer_paiement(request):
                     'moyen_paiement': paiement.moyen_paiement.libelle
                 }
             })
-        
         messages.success(request, "Merci pour votre contribution !")
         return redirect('accueil')
-     # Si c'est une requête AJAX avec des erreurs de formulaire
+    # Si c'est une requête AJAX avec des erreurs de formulaire
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
             'success': False,
@@ -197,58 +240,14 @@ def effectuer_paiement(request):
         }, status=400)
 
     objectif_depasse = False
-    cotisation_active = Cotisation.objects.filter(est_active=True).first()
     if cotisation_active and cotisation_active.montant_collecte >= cotisation_active.objectif_global:
         objectif_depasse = True
     return render(request, 'gestion/paiement.html', {
         'form': form,
         'cotisations': Cotisation.objects.filter(est_active=True),
         'moyens': MoyenPaiement.objects.filter(est_actif=True),
-        'objectif_depasse': objectif_depasse
-    })
-
-    membre = request.user.membre
-    form = PaiementForm(request.POST or None)
-
-    if request.method == 'POST' and form.is_valid():
-        paiement = form.save(commit=False)
-        paiement.membre = membre
-        cotisation = paiement.cotisation
-        param = getattr(cotisation, 'parametragecotisation', None)
-
-        if param:
-            if not param.est_cotisation_libre:
-                paiement.montant = param.montant_fixe
-            elif param.montant_minimum and paiement.montant < param.montant_minimum:
-                form.add_error('montant', f"Le montant minimum est de {param.montant_minimum} FCFA.")
-                return render(request, 'gestion/paiement.html', {
-                    'form': form,
-                    'cotisations': Cotisation.objects.filter(est_active=True),
-                    'moyens': MoyenPaiement.objects.filter(est_actif=True)
-                })
-
-        paiement.save()
-        tresoriers = MembreRoles.objects.filter(role__nom__iexact='trésorier', est_actif=True)
-        emails_tresoriers = [t.membre.email for t in tresoriers if t.membre.email]
-        if emails_tresoriers:
-            contenu = f"{membre.nom_complet} vient d'effectuer un paiement de {paiement.montant} FCFA pour la cotisation « {paiement.cotisation.libelle} ». Veuillez le valider depuis votre tableau de bord."
-            envoyer_mail(
-                destinataires=emails_tresoriers,
-                sujet="📩 Nouveau paiement en attente de validation",
-                contenu=contenu
-            )
-        messages.success(request, "Merci pour votre contribution !")
-        return redirect('accueil')
-
-    objectif_depasse = False
-    cotisation_active = Cotisation.objects.filter(est_active=True).first()
-    if cotisation_active and cotisation_active.montant_collecte >= cotisation_active.objectif_global:
-        objectif_depasse = True
-    return render(request, 'gestion/paiement.html', {
-        'form': form,
-        'cotisations': Cotisation.objects.filter(est_active=True),
-        'moyens': MoyenPaiement.objects.filter(est_actif=True),
-        'objectif_depasse': objectif_depasse
+        'objectif_depasse': objectif_depasse,
+        'parametrage': parametrage
     })
 
 def get_parametrage_cotisation(request, cotisation_id):
